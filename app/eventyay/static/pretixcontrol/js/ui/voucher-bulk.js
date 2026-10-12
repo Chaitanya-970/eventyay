@@ -23,6 +23,7 @@ function syncPrefix(form, preserveExisting = false) {
     }
 
     prefixInput.value = tagInput.value.trim();
+    prefixInput.setCustomValidity('');
 }
 
 function formFor(target) {
