@@ -526,12 +526,18 @@ class VoucherBulkCreate(EventPermissionRequiredMixin, AsyncFormView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['code_length'] = settings.ENTROPY['voucher_code']
+        ctx['max_codes'] = VoucherRNG.MAX_CODES
+        ctx['max_prefix_length'] = VoucherRNG.get_max_prefix_length()
         return ctx
 
 
 class VoucherRNG(EventPermissionRequiredMixin, View):
     permission = 'can_change_vouchers'
     MAX_CODES = 100_000
+
+    @staticmethod
+    def get_max_prefix_length() -> int:
+        return Voucher._meta.get_field('code').max_length - settings.ENTROPY['voucher_code']
 
     def get(self, request, *args, **kwargs):
         codes = set()
@@ -545,7 +551,9 @@ class VoucherRNG(EventPermissionRequiredMixin, View):
             # grow with ``num``. Same limit as pretix.
             return HttpResponseBadRequest()
 
-        prefix = request.GET.get('prefix')
+        prefix = request.GET.get('prefix', '')
+        if len(prefix) > self.get_max_prefix_length():
+            return HttpResponseBadRequest()
         while len(codes) < num:
             new_codes = set()
             for i in range(min(num - len(codes), 500)):  # Work around SQLite's SQLITE_MAX_VARIABLE_NUMBER

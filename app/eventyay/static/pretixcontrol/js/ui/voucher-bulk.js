@@ -55,6 +55,9 @@ document.addEventListener(
 document.addEventListener(
     'input',
     (event) => {
+        if (event.target.matches(`${formSelector} #voucher-bulk-codes-prefix`)) {
+            event.target.setCustomValidity('');
+        }
         if (event.target.matches(`${formSelector} ${tagSelector}`)) {
             syncPrefix(formFor(event.target), false);
         }
@@ -97,6 +100,18 @@ document.addEventListener('click', async (event) => {
         num = '5';
         if (numInput) {
             numInput.value = '5';
+        }
+    }
+
+    if (numInput && !numInput.reportValidity()) {
+        return;
+    }
+    if (prefixInput) {
+        prefixInput.setCustomValidity(
+            prefix.length > prefixInput.maxLength ? prefixInput.dataset.lengthError : ''
+        );
+        if (!prefixInput.reportValidity()) {
+            return;
         }
     }
 
