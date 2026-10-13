@@ -108,8 +108,11 @@ document.addEventListener('click', async (event) => {
         return;
     }
     if (prefixInput) {
+        const lengthError = prefixInput.dataset.lengthError || (
+            window.gettext ? window.gettext('The prefix is too long.') : 'The prefix is too long.'
+        );
         prefixInput.setCustomValidity(
-            prefix.length > prefixInput.maxLength ? prefixInput.dataset.lengthError : ''
+            prefixInput.maxLength >= 0 && prefix.length > prefixInput.maxLength ? lengthError : ''
         );
         if (!prefixInput.reportValidity()) {
             return;

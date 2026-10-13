@@ -5,7 +5,7 @@ from django.test import override_settings
 from django.urls import reverse
 from django.utils.timezone import now
 
-from eventyay.base.models import Event, Organizer, Team, User
+from eventyay.base.models import Event, Organizer, Team, User, Voucher
 from eventyay.control.views.vouchers import VoucherRNG
 
 
@@ -111,7 +111,7 @@ def test_rng_accepts_maximum_prefix(client, env):
     assert response.status_code == 200
     code = response.json()['codes'][0]
     assert code.startswith(prefix)
-    assert len(code) == 255
+    assert len(code) == Voucher._meta.get_field('code').max_length
 
 
 @override_settings(DEBUG=True)
@@ -150,16 +150,22 @@ def test_rng_invalid_input_does_not_generate_codes(client, env, mocker, params):
     generate.assert_not_called()
 
 
-@override_settings(DEBUG=True)
+@override_settings(DEBUG=True, USE_THOUSAND_SEPARATOR=True)
 @pytest.mark.django_db
-def test_bulk_page_exposes_generation_limits(client, env):
+@pytest.mark.parametrize('language', ['en', 'de'])
+def test_bulk_page_exposes_generation_limits(client, env, language):
     organizer, event, user = env
+    user.locale = language
+    user.save(update_fields=['locale'])
     client.force_login(user)
     url = reverse('control:event.vouchers.bulk', kwargs={'organizer': organizer.slug, 'event': event.slug})
 
     response = client.get(url)
 
     assert response.status_code == 200
+    assert response['Content-Language'].startswith(language)
     assert response.context['max_codes'] == VoucherRNG.MAX_CODES
     assert response.context['max_prefix_length'] == VoucherRNG.get_max_prefix_length()
     assert b'min="1" max="100000" step="1"' in response.content
+    prefix_limit = VoucherRNG.get_max_prefix_length()
+    assert f'maxlength="{prefix_limit}"'.encode() in response.content
