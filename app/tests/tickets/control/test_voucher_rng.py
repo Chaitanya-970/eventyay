@@ -58,7 +58,7 @@ def test_rng_rejects_more_codes_than_the_limit(client, env):
     organizer, event, user = env
     client.force_login(user)
 
-    response = client.get(_rng_url(organizer, event), {'num': 100_001})
+    response = client.get(_rng_url(organizer, event), {'num': 1_001})
 
     assert response.status_code == 400
 
@@ -133,10 +133,10 @@ def test_rng_rejects_prefix_one_character_over_limit(client, env, mocker):
 @pytest.mark.parametrize(
     'params',
     [
-        {'num': 100_001},
+        {'num': 1_001},
         {'num': -1},
         {'num': 'invalid'},
-        {'num': 100_000, 'prefix': 'P' * 256},
+        {'num': 1_000, 'prefix': 'P' * 256},
     ],
 )
 def test_rng_invalid_input_does_not_generate_codes(client, env, mocker, params):
@@ -166,6 +166,6 @@ def test_bulk_page_exposes_generation_limits(client, env, language):
     assert response['Content-Language'].startswith(language)
     assert response.context['max_codes'] == VoucherRNG.MAX_CODES
     assert response.context['max_prefix_length'] == VoucherRNG.get_max_prefix_length()
-    assert b'min="1" max="100000" step="1"' in response.content
+    assert b'min="1" max="1000" step="1"' in response.content
     prefix_limit = VoucherRNG.get_max_prefix_length()
     assert f'maxlength="{prefix_limit}"'.encode() in response.content
